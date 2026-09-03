@@ -6,6 +6,7 @@
 #include <string>
 #include <vector>
 
+#include "Common/Config/Config.h"
 #include "Common/HookableEvent.h"
 
 class InputConfig;
@@ -13,6 +14,11 @@ class InputConfig;
 namespace ciface::Core
 {
 class DeviceContainer;
+}
+
+namespace ControllerEmu
+{
+class EmulatedController;
 }
 
 // Automatically assigns SDL controllers to player slots based on connection order.
@@ -39,6 +45,19 @@ private:
   // Checks if a device name indicates a Nintendo/Wiimote controller.
   static bool IsNintendoController(const std::string& device_name);
 
+  // Extracts the human-readable device name from a qualified name "SDL/{id}/{name}".
+  static std::string ExtractDeviceName(const std::string& qualified_name);
+
+  // Loads a profile onto a controller. First tries a controller-specific profile
+  // ("SDL Auto Assignment <device_name>.ini"), then falls back to the stock profile.
+  // The controller's device is forced to force_device regardless of any "Device"
+  // entry inside the profile.
+  static void LoadProfileForController(InputConfig* config,
+                                       ControllerEmu::EmulatedController* controller,
+                                       const std::string& device_name,
+                                       const std::string& force_device,
+                                       const std::string& stock_profile_name);
+
   // Get list of currently connected SDL device qualified names, in order.
   std::vector<std::string> GetConnectedSDLDevices() const;
 
@@ -49,4 +68,6 @@ private:
   void AssignWiimoteSlots(const std::vector<std::string>& sdl_devices);
 
   Common::EventHook m_devices_changed_hook;
+  Config::ConfigChangedCallbackID m_config_changed_callback_id{};
+  bool m_was_enabled = false;
 };
