@@ -48,6 +48,9 @@ private:
   // Extracts the human-readable device name from a qualified name "SDL/{id}/{name}".
   static std::string ExtractDeviceName(const std::string& qualified_name);
 
+  // Extracts the numeric id from a qualified name "Source/{id}/{name}".
+  static int ExtractDeviceId(const std::string& qualified_name);
+
   // Loads a profile onto a controller. First tries a controller-specific profile
   // ("SDL Auto Assignment <device_name>.ini"), then falls back to the stock profile.
   // The controller's device is forced to force_device regardless of any "Device"

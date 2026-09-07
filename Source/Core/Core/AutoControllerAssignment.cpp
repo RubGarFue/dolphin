@@ -161,6 +161,14 @@ std::string AutoControllerAssignment::ExtractDeviceName(const std::string& quali
   return (last_slash != std::string::npos) ? qualified_name.substr(last_slash + 1) : qualified_name;
 }
 
+int AutoControllerAssignment::ExtractDeviceId(const std::string& qualified_name)
+{
+  // Parse "Source/{id}/{name}" and return the numeric id (the DeviceQualifier "cid").
+  ciface::Core::DeviceQualifier devq;
+  devq.FromString(qualified_name);
+  return devq.cid;
+}
+
 void AutoControllerAssignment::LoadProfileForController(
     InputConfig* config, ControllerEmu::EmulatedController* controller,
     const std::string& device_name, const std::string& force_device,
@@ -314,9 +322,7 @@ void AutoControllerAssignment::AssignWiimoteSlots(const std::vector<std::string>
   const int num_devices = static_cast<int>(sdl_devices.size());
 
   // Every slot is set unconditionally on every pass (idempotent) — see the note in
-  // AssignGCPadSlots for why. The Nth detected Wiimote maps to "Bluetooth/N/Wii Remote".
-  int wiimote_ordinal = 0;
-
+  // AssignGCPadSlots for why.
   for (int slot = 0; slot < num_slots; ++slot)
   {
     auto* controller = wii_config->GetController(slot);
@@ -333,9 +339,15 @@ void AutoControllerAssignment::AssignWiimoteSlots(const std::vector<std::string>
         // A real Wiimote was detected through SDL. Set the slot to an Emulated Wii
         // Remote pointing at Dolphin's internal Bluetooth device (not "Real Wii
         // Remote") and load the stock Wiimote profile, keeping native gyro/pointer.
-        const std::string bluetooth_device = fmt::format(
-            "{}/{}/{}", WIIMOTE_BLUETOOTH_SOURCE, wiimote_ordinal, WIIMOTE_BLUETOOTH_NAME);
-        ++wiimote_ordinal;
+        //
+        // A physical Wiimote is exposed both as an SDL device and as an internal
+        // Bluetooth device, and both share the same numeric id (e.g. the remote at
+        // "SDL/1/Nintendo RVL-CNT-01" is driven via "Bluetooth/1/Wii Remote"). So the
+        // Bluetooth device is derived directly from the SDL device's id. This stays
+        // correct after a disconnect, where ids are freed but survivors keep theirs.
+        const int sdl_id = ExtractDeviceId(device_string);
+        const std::string bluetooth_device =
+            fmt::format("{}/{}/{}", WIIMOTE_BLUETOOTH_SOURCE, sdl_id, WIIMOTE_BLUETOOTH_NAME);
 
         INFO_LOG_FMT(CONTROLLERINTERFACE,
                      "AutoControllerAssignment: Wiimote slot {} -> '{}' (Wiimote '{}')", slot + 1,
