@@ -105,14 +105,6 @@ void AutoControllerAssignment::PerformAssignment()
                "AutoControllerAssignment: {} SDL device(s) connected, performing assignment",
                sdl_devices.size());
 
-  // TEMPORARY DIAGNOSTIC: dump the exact ordered SDL device list so we can see the
-  // real ordering the assignment is working from. Remove once the behavior is verified.
-  for (size_t i = 0; i < sdl_devices.size(); ++i)
-  {
-    INFO_LOG_FMT(CONTROLLERINTERFACE, "AutoControllerAssignment:   sdl_devices[{}] = '{}'", i,
-                 sdl_devices[i]);
-  }
-
   // Batch all config writes so change callbacks fire once at the end rather than after
   // every SetBaseOrCurrent call.
   Config::ConfigChangeCallbackGuard config_guard;

@@ -307,6 +307,25 @@ bool InputBackend::HandleEventAndContinue(const SDL_Event& e)
       SDL_free(joystick_ids);
     });
   }
+  else if (e.type == SDL_EVENT_GAMEPAD_STEAM_HANDLE_UPDATED)
+  {
+    // Steam Input fires this (and no ADDED/REMOVED events) when the user reorders
+    // controllers via Steam. A reorder changes the order SDL_GetJoysticks() returns, so
+    // we re-enumerate our SDL devices to reflect the new order: remove the existing SDL
+    // devices and re-add them within a single populate transaction so the DevicesChanged
+    // callback fires once with the updated ordering.
+    GetControllerInterface().PlatformPopulateDevices([this] {
+      GetControllerInterface().RemoveDevice(
+          [](const auto* device) { return device->GetSource() == "SDL"; });
+
+      int joystick_count = 0;
+      auto* const joystick_ids = SDL_GetJoysticks(&joystick_count);
+      for (auto instance_id : std::span(joystick_ids, joystick_count))
+        OpenAndAddDevice(instance_id);
+
+      SDL_free(joystick_ids);
+    });
+  }
   else if (e.type == m_stop_event_type)
   {
     return false;
